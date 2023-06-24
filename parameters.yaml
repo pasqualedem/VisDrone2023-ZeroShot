@@ -16,7 +16,8 @@ parameters:
   tags: [[]]
   # train, test, inference
   phases: [[train, test]]
-  dataset_interface: [aseg/data/forest/ForestDatasetInterface]
+  print_model_summary: [False]
+  dataset_interface: [vdzh/data/cppe5/CPPE5DatasetInterface]
 
   train_params:
     max_epochs: [1000]
@@ -27,6 +28,7 @@ parameters:
     loss:
       name: [vdzh/loss/ObjLoss]
       params:
+        num_classes: &num_classes [5]
     seed: [42]
     zero_weight_decay_on_bias_and_bn: [True]
     average_best_models: [False]
@@ -36,11 +38,17 @@ parameters:
     freeze_pretrained: [False]
 
   model:
-    name: [vdzh/models/OwlViTForObjectDetection]
+    name: [vdzh/models/owlvit/OwlViT]
     params:
+      pretrained: [True]
 
   dataset:
-
+    channels: [["R", "G", "B"]]
+    num_classes: *num_classes
+    batch_size: [2]
+    val_batch_size: [2]
+    test_batch_size: [2]
+  
   train_metrics:
     f1: &metric_params
       num_classes: *num_classes

@@ -19,7 +19,6 @@ parser.add_argument('-f', '--file', required=False, type=str,
 parser.add_argument("--grid", type=int, help="Select the first grid to start from")
 parser.add_argument("--run", type=int, help="Select the run in grid to start from")
 
-parser.add_argument('--subset', type=str, help="Subset chosen for preprocessing and augmentation")
 
 if __name__ == '__main__':
     args = parser.parse_args()

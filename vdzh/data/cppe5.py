@@ -11,7 +11,7 @@ from torchvision.datasets.vision import VisionDataset
 import torchvision.transforms as transforms
 from torchvision.transforms import functional as F
 from datasets import load_dataset
-from transformers import AutoProcessor, AutoImageProcessor, AutoModelForZeroShotObjectDetection
+from transformers import AutoProcessor, AutoImageProcessor, AutoModelForZeroShotObjectDetection, OwlViTProcessor
 
 from ezdl.transforms import \
     PairRandomCrop, ToLong, FixValue, Denormalize, PairRandomFlip, squeeze0, \
@@ -26,17 +26,14 @@ from ezdl.data import DatasetInterface
 logger = get_logger(__name__)
 
     
+checkpoint = "google/owlvit-base-patch32"
+processor = OwlViTProcessor.from_pretrained(checkpoint)
 def collate_fn(batch):
     pixel_values = [item["pixel_values"] for item in batch]
     encoding = processor(images=pixel_values, text=["mask", "gloves", "googles"], return_tensors="pt")
     labels = [item["labels"] for item in batch]
-    batch = {}
-    batch["pixel_values"] = encoding["pixel_values"]
     # batch["pixel_mask"] = batch["pixel_mask"]
-    batch['attention_mask'] = encoding["attention_mask"]
-    batch['input_ids'] = encoding['input_ids']
-    batch["labels"] = labels
-    return batch
+    return (encoding['input_ids'], encoding["pixel_values"], encoding["attention_mask"]), labels    
     
 
 class CPPE5DatasetInterface(DatasetInterface):
@@ -83,8 +80,8 @@ class CPPE5DatasetInterface(DatasetInterface):
             return image_processor(images=images, annotations=targets, return_tensors="pt")
 
         self.lib_dataset_params = {
-            'mean': image_processor.mean,
-            'std': image_processor.std,
+            'mean': image_processor.image_mean,
+            'std': image_processor.image_std,
             'channels': 3
         }
         transform = albumentations.Compose(
@@ -102,8 +99,12 @@ class CPPE5DatasetInterface(DatasetInterface):
         cppe5["train"] = cppe5["train"].with_transform(transform_aug_ann)
 
         self.trainset = cppe5["train"]
+        self.trainset.classes = ["coveralls", "faceshield", "gloves", "mask", "goggles"]
+        self.trainset.collate_fn = collate_fn
         self.valset = cppe5["test"]
+        self.valset.collate_fn = collate_fn
         self.testset = cppe5["test"]
+        self.testset.collate_fn = collate_fn
 
     def undo_preprocess(self, x):
         return (Denormalize(self.lib_dataset_params['mean'], self.lib_dataset_params['std'])(x) * 255).type(torch.uint8)
