@@ -1,0 +1,1 @@
+from transformers import OwlViTProcessor, OwlViTForObjectDetection, AutoImageProcessor

@@ -1,0 +1,54 @@
+experiment:
+  name: VisDrone2023ZeroShot
+  group: cppe5
+  continue_with_errors: False
+  start_from_grid: 0
+  start_from_run: 0
+  logger: clearml
+  tracking_dir: experiments
+  entity: null
+  excluded_files: "*.pth"
+  search: grid # search method to use (optim or grid)
+  direction: max # direction of the search (max or min)
+  n_trials: 40 # number of trials to run
+
+parameters:
+  tags: [[]]
+  # train, test, inference
+  phases: [[train, test]]
+  dataset_interface: [aseg/data/forest/ForestDatasetInterface]
+
+  train_params:
+    max_epochs: [1000]
+    initial_lr: [0.00001, 0.01]
+    optimizer: [Adam]
+    optimizer_params:
+      weight_decay: [0]
+    loss:
+      name: [vdzh/loss/ObjLoss]
+      params:
+    seed: [42]
+    zero_weight_decay_on_bias_and_bn: [True]
+    average_best_models: [False]
+    greater_metric_to_watch_is_better: [True]
+    metric_to_watch: [f1]
+    early_stopping_patience: [50]
+    freeze_pretrained: [False]
+
+  model:
+    name: [vdzh/models/OwlViTForObjectDetection]
+    params:
+
+  dataset:
+
+  train_metrics:
+    f1: &metric_params
+      num_classes: *num_classes
+  test_metrics:
+    conf_mat: *metric_params
+    f1: *metric_params
+    precision: *metric_params
+    recall: *metric_params
+    jaccard: *metric_params
+
+other_grids:
