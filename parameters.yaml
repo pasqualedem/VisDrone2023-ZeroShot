@@ -33,12 +33,12 @@ parameters:
     zero_weight_decay_on_bias_and_bn: [True]
     average_best_models: [False]
     greater_metric_to_watch_is_better: [True]
-    metric_to_watch: [f1]
+    metric_to_watch: [mean_average_precision]
     early_stopping_patience: [50]
     freeze_pretrained: [False]
 
   model:
-    name: [vdzh/models/owlvit/OwlViT]
+    name: [vdzh/models/owlvit/RandomDetector]
     params:
       pretrained: [True]
 
@@ -50,13 +50,17 @@ parameters:
     test_batch_size: [2]
   
   train_metrics:
-    f1: &metric_params
-      num_classes: *num_classes
+    mean_average_precision:
   test_metrics:
-    conf_mat: *metric_params
-    f1: *metric_params
-    precision: *metric_params
-    recall: *metric_params
-    jaccard: *metric_params
+    mean_average_precision:
+
+  test_callbacks:
+    DetectionVisualizationCallback:
+  val_callbacks: 
+    DetectionVisualizationCallback: 
+      batch_idxs: [[4, 16]]
+  train_callbacks: 
+    DetectionVisualizationCallback: 
+      batch_idxs: [[0]]
 
 other_grids:

@@ -30,8 +30,8 @@ checkpoint = "google/owlvit-base-patch32"
 processor = OwlViTProcessor.from_pretrained(checkpoint)
 def collate_fn(batch):
     pixel_values = [item["pixel_values"] for item in batch]
-    encoding = processor(images=pixel_values, text=["mask", "gloves", "googles"], return_tensors="pt")
-    labels = [item["labels"] for item in batch]
+    encoding = processor(images=pixel_values, text=[["coveralls", "faceshield", "gloves", "mask", "googles", "no object"] for _ in range(len(batch))], return_tensors="pt")
+    labels = [dict(item["labels"]) for item in batch]
     # batch["pixel_mask"] = batch["pixel_mask"]
     return (encoding['input_ids'], encoding["pixel_values"], encoding["attention_mask"]), labels    
     
@@ -98,8 +98,12 @@ class CPPE5DatasetInterface(DatasetInterface):
         cppe5["train"] = cppe5["train"].select(keep)
         cppe5["train"] = cppe5["train"].with_transform(transform_aug_ann)
 
+        classes = ["coveralls", "faceshield", "gloves", "mask", "goggles"]
+        id2label = {i: label for i, label in enumerate(classes)}
+
         self.trainset = cppe5["train"]
-        self.trainset.classes = ["coveralls", "faceshield", "gloves", "mask", "goggles"]
+        self.trainset.classes = classes
+        self.trainset.id2label = id2label
         self.trainset.collate_fn = collate_fn
         self.valset = cppe5["test"]
         self.valset.collate_fn = collate_fn

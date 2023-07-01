@@ -12,6 +12,8 @@ parser.add_argument('--resume', required=False, action='store_true',
                     help='Resume the experiment', default=False)
 parser.add_argument('-d', '--dir', required=False, type=str,
                     help='Set the local tracking directory', default=None)
+parser.add_argument('-r', '--root', required=False, type=str,
+                    help='Set the dataset root for fix', default=None)
 parser.add_argument('-m', '--mode', required=False, type=str,
                     help='Preprocessing mode: default / tiled', default="default")
 parser.add_argument('-f', '--file', required=False, type=str,
@@ -35,3 +37,9 @@ if __name__ == '__main__':
         settings['experiment'] = update_collection(settings['experiment'], args.run, key='start_from_run')
         settings['experiment'] = update_collection(settings['experiment'], track_dir, key='tracking_dir')
         experiment(settings)
+    elif action == "statistics":
+        from vdzh.data.statistics import show_statistics
+        show_statistics(args.root)
+    elif action == "fix":
+        from vdzh.data.fix import fix_labels
+        fix_labels(args.root)
