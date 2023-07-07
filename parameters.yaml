@@ -17,7 +17,7 @@ parameters:
   # train, test, inference
   phases: [[train, test]]
   print_model_summary: [False]
-  dataset_interface: [vdzh/data/cppe5/CPPE5DatasetInterface]
+  dataset_interface: [vdzh/data/visdrone/VisDroneDatasetInterface]
 
   train_params:
     max_epochs: [1000]
@@ -28,7 +28,7 @@ parameters:
     loss:
       name: [vdzh/loss/ObjLoss]
       params:
-        num_classes: &num_classes [5]
+        num_classes: &num_classes [17]
     seed: [42]
     zero_weight_decay_on_bias_and_bn: [True]
     average_best_models: [False]
@@ -36,18 +36,21 @@ parameters:
     metric_to_watch: [mean_average_precision]
     early_stopping_patience: [50]
     freeze_pretrained: [False]
+    pass_context_to_loss: [True]
 
   model:
-    name: [vdzh/models/owlvit/RandomDetector]
+    name: [vdzh/models/owlvit/OwlViT]
     params:
       pretrained: [True]
 
   dataset:
+    root: ["dataset/raw"]
     channels: [["R", "G", "B"]]
     num_classes: *num_classes
     batch_size: [2]
     val_batch_size: [2]
     test_batch_size: [2]
+    mean_std_targets_per_image: [[10, 2]]
   
   train_metrics:
     mean_average_precision:
@@ -59,8 +62,5 @@ parameters:
   val_callbacks: 
     DetectionVisualizationCallback: 
       batch_idxs: [[4, 16]]
-  train_callbacks: 
-    DetectionVisualizationCallback: 
-      batch_idxs: [[0]]
-
+  
 other_grids:

@@ -156,13 +156,15 @@ class VisDroneDataset(VisionDataset):
         pixel_values = [item["pixel_values"] for item in batch]
         labels = [dict(item["labels"]) for item in batch]
         text = [list(set([self.id2label[obj.item()] for obj in item['class_labels']])) for item in labels]
-        text = [self.sample_categories(objects) for objects in text]
+        text = [self.sample_categories(objects) + ['no object'] for objects in text]
         encoding = self.processor(images=pixel_values, text=text, return_tensors="pt")
+        # Add no object class
+        label2id = {**self.label2id, "no object": len(self.label2id)}
         return ((encoding['input_ids'], encoding["pixel_values"], encoding["attention_mask"]),
                 labels,
                 {
                     "input_name": [item["input_name"] for item in batch],
-                    "included_classes": [[self.label2id[obj] for obj in objects] 
+                    "included_classes": [[label2id[obj] for obj in objects] 
                                          for objects in text]}
                 )
 
