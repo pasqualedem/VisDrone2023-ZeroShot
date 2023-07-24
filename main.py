@@ -43,3 +43,11 @@ if __name__ == '__main__':
     elif action == "fix":
         from vdzh.data.fix import fix_labels
         fix_labels(args.root)
+    elif action == "split":
+        from vdzh.data.split import split
+        split(args.root)
+    elif action == "test":
+        from vdzh.test import detect_testset
+        param_path = args.file or 'test.yaml'
+        settings = load_yaml(param_path)
+        detect_testset(**settings)

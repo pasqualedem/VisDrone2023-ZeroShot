@@ -46,31 +46,12 @@ class VisDroneDatasetInterface(DatasetInterface):
             bboxes = [ann['bndbox'] for ann in ann_list]
             bboxes = [[int(box['xmin']), int(box['ymin']), int(box['xmax']), int(box['ymax'])] for box in bboxes]
             bboxes = box_convert(torch.tensor(bboxes), in_fmt="xyxy", out_fmt="xywh")
-            # annotations = []
-            # for i in range(len(category)):
-            #     new_ann = {
-            #         "image_id": image_id,
-            #         "category_id": category[i],
-            #         "isCrowd": 0,
-            #         "area": area[i],
-            #         "bbox": list(bbox[i]),
-            #     }
-            #     annotations.append(new_ann)
             return {"category": categories, "bbox": bboxes}
     
-        def transform_aug_ann(sample):
+        def transform_aug_ann(transform, sample):
             image_ids = sample["image_id"]
             annotations = formatted_anns(sample)
             outs = transform(image=sample['image'], bboxes=annotations['bbox'], category=annotations["category"])
-            # images, bboxes, area, categories = [], [], [], []
-            # for image, objects in zip(examples["image"], examples["objects"]):
-            #     image = np.array(image.convert("RGB"))[:, :, ::-1]
-            #     out = transform(image=image, bboxes=objects["bbox"], category=objects["category"])
-
-            #     area.append(objects["area"])
-            #     images.append(out["image"])
-            #     bboxes.append(out["bboxes"])
-            #     categories.append(out["category"])
             targets = {"image_id": [image_ids], 
                        "annotations": [{"image_id": image_ids,
                                   "category_id": cat,
@@ -91,18 +72,27 @@ class VisDroneDatasetInterface(DatasetInterface):
             'std': image_processor.image_std,
             'channels': 3
         }
-        transform = albumentations.Compose(
+        transform_train = albumentations.Compose(
             [
-                # albumentations.Resize(480, 480), 
+                albumentations.Resize(768, 768), 
                 albumentations.HorizontalFlip(p=.5),
                 albumentations.RandomBrightnessContrast(p=.5),
             ],
             bbox_params=albumentations.BboxParams(format="coco", label_fields=["category"]),
         )
+        transform_val = albumentations.Compose(
+            [
+                albumentations.Resize(768, 768), 
+            ],
+            bbox_params=albumentations.BboxParams(format="coco", label_fields=["category"]),
+        )
+        transform_train_fun = lambda sample: transform_aug_ann(transform_train, sample)
+        transform_val_fun = lambda sample: transform_aug_ann(transform_val, sample)
 
         self.trainset = VisDroneDataset(os.path.join(dataset_params["root"], "trainset"), 
-                                        transforms=transform_aug_ann, mean_std_targets_per_image=mean_std_targets_per_image)
-        self.valset = None
+                                        transforms=transform_train_fun, mean_std_targets_per_image=mean_std_targets_per_image)
+        self.valset = VisDroneDataset(os.path.join(dataset_params["root"], "valset"), 
+                                        transforms=transform_val_fun, mean_std_targets_per_image=mean_std_targets_per_image)
         self.testset = None
 
 class VisDroneDataset(VisionDataset):
@@ -193,6 +183,10 @@ class VisDroneDataset(VisionDataset):
         probs = torch.tensor(list(distribution.values()))
         probs = probs / probs.sum()
         n_samples = torch.normal(mean, std, size=(1,)).int().item()
+        if n_samples < 0:
+            n_samples = 0
+        if n_samples > len(probs[probs != 0]):
+            n_samples = len(probs[probs != 0])
         samples = []
         for i in range(n_samples):
             sample = torch.distributions.Categorical(probs=probs).sample().item()
@@ -228,3 +222,27 @@ class VisDroneDataset(VisionDataset):
 
     def __len__(self) -> int:
         return len(self.sample_list)
+    
+
+class VisDroneTestSet(VisDroneDataset):
+    def __getitem__(self, index: int):
+        """
+        Reads the image from files
+
+        Args:
+            index: index of the image name in the sample_list
+
+        Returns:
+            image: image tensor encoded with image_processor of the resized image.
+        """
+
+        image = Image.open(os.path.join(self.root, "JPEGImages", self.sample_list[index]))
+
+        sample = {
+            "size": torch.tensor(image.size),
+            "image": np.array(image),
+            "image_id": torch.tensor([index]),
+            "input_name": self.sample_list[index],
+            "text": self.classes,
+        }
+        return self.transforms(sample)

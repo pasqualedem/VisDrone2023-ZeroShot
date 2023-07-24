@@ -1,0 +1,8 @@
+model_params:
+  pretrained: True
+
+dataset_params:
+  root: "dataset/raw/testset"
+
+output: "dataset/outputs"
+threshold: 0.1

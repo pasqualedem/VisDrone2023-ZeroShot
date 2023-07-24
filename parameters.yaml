@@ -1,6 +1,6 @@
 experiment:
   name: VisDrone2023ZeroShot
-  group: cppe5
+  group: FirstTry
   continue_with_errors: False
   start_from_grid: 0
   start_from_run: 0
@@ -15,14 +15,14 @@ experiment:
 parameters:
   tags: [[]]
   # train, test, inference
-  phases: [[train, test]]
+  phases: [[train]]
   print_model_summary: [False]
   dataset_interface: [vdzh/data/visdrone/VisDroneDatasetInterface]
 
   train_params:
     max_epochs: [1000]
-    initial_lr: [0.00001, 0.01]
-    optimizer: [Adam]
+    initial_lr: [1e-6]
+    optimizer: [AdamW]
     optimizer_params:
       weight_decay: [0]
     loss:
@@ -33,7 +33,7 @@ parameters:
     zero_weight_decay_on_bias_and_bn: [True]
     average_best_models: [False]
     greater_metric_to_watch_is_better: [True]
-    metric_to_watch: [mean_average_precision]
+    metric_to_watch: [map]
     early_stopping_patience: [50]
     freeze_pretrained: [False]
     pass_context_to_loss: [True]
@@ -47,20 +47,25 @@ parameters:
     root: ["dataset/raw"]
     channels: [["R", "G", "B"]]
     num_classes: *num_classes
-    batch_size: [2]
+    batch_size: [8]
     val_batch_size: [2]
     test_batch_size: [2]
-    mean_std_targets_per_image: [[10, 2]]
+    mean_std_targets_per_image: [[9, 2]]
   
   train_metrics:
-    mean_average_precision:
   test_metrics:
     mean_average_precision:
 
+  train_callbacks: 
+    DetectionVisualizationCallback: 
+      batch_idxs: [[0, 50, 600]]
+      threshold: [0.1]
   test_callbacks:
     DetectionVisualizationCallback:
+      threshold: [0.1]
   val_callbacks: 
     DetectionVisualizationCallback: 
       batch_idxs: [[4, 16]]
+      threshold: [0.1]
   
 other_grids:
